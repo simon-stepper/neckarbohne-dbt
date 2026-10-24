@@ -1,0 +1,9 @@
+seeds:
+  - name: feiertage_bw
+    description: Gesetzliche Feiertage in Baden-Württemberg 2025–2027
+    config:
+      column_types: {datum: date, name: varchar}
+  - name: kanaele
+    description: Die vier Vertriebskanäle von Neckarbohne
+    config:
+      column_types: {kanal_key: integer, kanal: varchar, beschreibung: varchar}

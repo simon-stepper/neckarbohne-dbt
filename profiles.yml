@@ -1,0 +1,8 @@
+# dbt sucht profiles.yml zuerst im aktuellen Ordner – deshalb liegt es hier im Projekt.
+neckarbohne:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: neckarbohne.duckdb   # dieselbe Datei, in die generate_data.py die Rohdaten lädt
+      threads: 4

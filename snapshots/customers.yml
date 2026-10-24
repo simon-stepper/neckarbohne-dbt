@@ -1,0 +1,8 @@
+snapshots:
+  - name: customers_snapshot
+    relation: source('shop', 'customers')
+    description: SCD 2 für Shop-Kunden – dbt vergleicht bei jedem Lauf und ergänzt neue Versionen
+    config:
+      unique_key: customer_id
+      strategy: check
+      check_cols: [city, email]

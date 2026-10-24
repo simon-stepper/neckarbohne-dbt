@@ -1,0 +1,10 @@
+models:
+  - name: int_kunden_vereint
+    description: Ein Kunde pro Zeile mit allen Quell-IDs; Zuordnung über die normalisierte E-Mail
+    columns:
+      - name: kunde_id
+        data_tests: [unique, not_null]
+  - name: int_order_lines
+    columns:
+      - name: order_line_id
+        data_tests: [unique, not_null]

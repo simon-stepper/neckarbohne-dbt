@@ -1,0 +1,34 @@
+name: neckarbohne
+version: "1.0.0"
+profile: neckarbohne
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+snapshot-paths: ["snapshots"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+clean-targets: ["target", "dbt_packages", "logs"]
+
+vars:
+  datum_von: "2025-01-01"   # Bereich der Datumsdimension
+  datum_bis: "2027-12-31"
+
+models:
+  neckarbohne:
+    staging:          # Silver: 1:1 pro Quelltabelle, umbenennen, Typen, Dubletten
+      +materialized: view
+      +schema: staging
+    intermediate:     # Silver: Quellen zusammenführen
+      +materialized: view
+      +schema: intermediate
+    marts:            # Gold: das Star Schema
+      +materialized: table
+
+seeds:
+  neckarbohne:
+    +schema: seeds
+
+snapshots:
+  neckarbohne:
+    +schema: snapshots

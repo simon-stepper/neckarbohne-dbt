@@ -1,0 +1,73 @@
+models:
+  - name: fct_order_lines
+    description: "Verkaufspositionen aller Kanäle. Grain: eine Zeile pro Bestellposition. Beträge in Euro, netto ohne MwSt."
+    columns:
+      - name: order_line_id
+        description: Bestellung und Position, z. B. 104711-2 oder C-001234-1
+        data_tests: [unique, not_null]
+      - name: order_id
+        description: Bestell-, Bon- oder Rechnungsnummer (degenerierte Dimension)
+      - name: datum_key
+        description: lokaler Bestelltag (Europe/Berlin) als YYYYMMDD
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_datum'), field: datum_key}
+      - name: produkt_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_produkt'), field: produkt_key}
+      - name: kanal_key
+        data_tests:
+          - not_null
+          - relationships:
+              arguments: {to: ref('dim_kanal'), field: kanal_key}
+      - name: kunde_key
+        description: Kunde in der am Bestelltag gültigen Version; -1 = Laufkundschaft im Café
+        data_tests:
+          - not_null:
+              config:
+                severity: warn   # Fortgeschritten: Unknown-Member einbauen, dann diese Zeile löschen
+          - relationships:
+              arguments: {to: ref('dim_kunde'), field: kunde_key}
+      - name: umsatz_brutto
+        description: Menge × Einzelpreis netto, vor Rabatt und Retoure (ohne MwSt.)
+      - name: rabatt_betrag
+        description: Rabatt netto
+      - name: retoure_betrag
+        description: erstatteter Betrag netto
+      - name: einstandskosten
+        description: Menge × Einstandspreis – für die Marge
+
+  - name: dim_kunde
+    description: Konforme Kundendimension für alle Kanäle, SCD 2 für Stadt und E-Mail
+    columns:
+      - name: kunde_key
+        description: Surrogate Key des DWH, je Version; -1 = Unbekannt / Laufkundschaft
+        data_tests: [unique, not_null]
+      - name: segment
+        data_tests:
+          - accepted_values:
+              arguments: {values: ['privat', 'B2B']}
+
+  - name: dim_produkt
+    columns:
+      - name: produkt_key
+        data_tests: [unique, not_null]
+
+  - name: dim_datum
+    columns:
+      - name: datum_key
+        data_tests: [unique, not_null]
+
+  - name: dim_kanal
+    columns:
+      - name: kanal_key
+        data_tests: [unique, not_null]
+      - name: kanal
+        data_tests:
+          - accepted_values:
+              arguments: {values: ['Webshop', 'Abo', 'Café', 'B2B']}
+
+# Bonus: fct_abo_monat (Grain: ein Abo pro Monat) – Modell und Tests selbst ergänzen.

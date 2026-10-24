@@ -1,0 +1,8 @@
+neckarbohne.duckdb
+neckarbohne.duckdb.wal
+*.duckdb
+data/
+target/
+logs/
+dbt_packages/
+.user.yml

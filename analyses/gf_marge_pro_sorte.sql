@@ -1,0 +1,3 @@
+-- GF-Frage: Wie hoch ist die Marge pro Sorte (Espresso, Filter, …) in Prozent – pro Quartal?
+-- Achtung Fehlerkatalog #13: Quoten nicht mitteln.
+-- TODO

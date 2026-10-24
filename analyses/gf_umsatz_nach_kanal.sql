@@ -1,0 +1,5 @@
+-- GF-Frage: Wie hoch ist der Umsatz nach Kanal – pro Monat?
+-- Welcher Umsatz ist gemeint? Die GF denkt netto, wie die Buchhaltung: ohne MwSt., nach Rabatt und Retoure.
+-- Ausführen: dbt compile --select gf_umsatz_nach_kanal, dann das SQL aus target/compiled/… in DuckDB
+-- oder direkt: dbt show --inline "select …"
+-- TODO

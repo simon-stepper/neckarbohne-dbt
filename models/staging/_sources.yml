@@ -1,0 +1,75 @@
+# Bronze: die Rohdaten der Quellsysteme, so wie das Ingestion-Tool (generate_data.py) sie lädt.
+sources:
+  - name: shop
+    description: Onlineshop – Bestellungen im Webshop und die monatlichen Abo-Lieferungen
+    schema: shop
+    tables:
+      - name: customers
+        description: Kundenkonten im Shop. Wird bei jedem Lauf komplett neu geladen (keine Historie!).
+        columns:
+          - name: customer_id
+            description: Shop-Kundennummer, z. B. S-1001
+          - name: email
+            description: so wie eingegeben – Groß-/Kleinschreibung uneinheitlich
+          - name: created_at
+            description: ISO-Zeitstempel mit Offset der Lokalzeit (Text)
+      - name: products
+        description: Artikelstamm mit Listenpreis und Einstandspreis, beides netto
+      - name: orders
+        description: Bestellköpfe. Achtung – der Ladelauf am 2026-10-12 wurde nach einem Abbruch wiederholt.
+        loaded_at_field: _loaded_at
+        freshness:
+          warn_after: {count: 36, period: hour}
+        columns:
+          - name: created_at
+            description: ISO-Zeitstempel mit Offset der Lokalzeit (Text)
+          - name: channel
+            description: web = Einzelbestellung, subscription = Abo-Lieferung
+          - name: status
+            description: 1 offen · 2 bezahlt · 3 storniert · 4 teilweise erstattet · 5 erstattet
+          - name: total_gross
+            description: Bestellsumme brutto inkl. MwSt., nach Rabatt, vor Erstattungen
+      - name: order_items
+        description: Bestellpositionen. Preise und Rabatte netto.
+      - name: refunds
+        description: Erstattungen (Retouren) je Position, netto
+      - name: reviews
+        description: Produktbewertungen aus dem Shop
+
+  - name: pos
+    description: Kassensystem im eigenen Café
+    schema: pos
+    tables:
+      - name: sales
+        description: Eine Zeile pro Artikel auf dem Bon. Keine Positionsnummer.
+        columns:
+          - name: ts
+            description: Lokalzeit Europe/Berlin als Text TT.MM.JJJJ HH:MM, ohne Zone
+          - name: amount_gross
+            description: Betrag brutto inkl. MwSt. (Getränke 19 %, Bohnen 7 %)
+          - name: card_id
+            description: Kassenkarte, wenn vorgezeigt – sonst leer (Laufkundschaft)
+      - name: cards
+        description: ausgegebene Kassenkarten, E-Mail freiwillig
+
+  - name: abo
+    description: Abo- und Zahlungsanbieter mit eigenen Kunden-IDs
+    schema: abo
+    tables:
+      - name: customers
+        description: Abo-Kunden (cus_…). E-Mail in anderer Schreibweise als im Shop.
+      - name: subscriptions
+        description: aktueller Stand je Abo – status, Kündigungs- und Pausendatum als Text TT.MM.JJJJ
+      - name: subscription_events
+        description: Ereignisse je Abo – created, paused, resumed, canceled (UTC)
+
+  - name: erp
+    description: Buchhaltung / ERP – B2B-Kunden und Rechnungen
+    schema: erp
+    tables:
+      - name: debitors
+        description: B2B-Kunden (Cafés, Gastronomie)
+      - name: invoices
+        description: Rechnungsköpfe mit Fälligkeit und Zahlungseingang
+      - name: invoice_lines
+        description: Rechnungspositionen, Preise und Rabatte netto

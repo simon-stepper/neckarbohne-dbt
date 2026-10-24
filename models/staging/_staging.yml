@@ -1,0 +1,36 @@
+models:
+  - name: stg_orders
+    description: Bestellköpfe aus dem Shop, eine Zeile pro Bestellung (Dubletten entfernt)
+    columns:
+      - name: order_id
+        data_tests: [unique, not_null]
+      - name: status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['offen', 'bezahlt', 'storniert', 'teilweise erstattet', 'erstattet']
+      - name: kanal
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Webshop', 'Abo']
+  - name: stg_customers
+    columns:
+      - name: customer_id
+        data_tests: [unique, not_null]
+  - name: stg_products
+    columns:
+      - name: produkt_id
+        data_tests: [unique, not_null]
+  - name: stg_pos_sales
+    columns:
+      - name: produkt_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: produkt_id
+  - name: stg_subscriptions
+    columns:
+      - name: abo_id
+        data_tests: [unique, not_null]
