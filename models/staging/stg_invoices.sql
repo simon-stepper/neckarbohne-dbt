@@ -1,7 +1,7 @@
 select
-    invoice_id      as rechnung_id,
+    invoice_id,
     debitor_id,
-    invoice_date    as rechnungsdatum,
-    due_date        as faellig_am,
-    paid_date       as bezahlt_am
+    invoice_date,
+    due_date,
+    paid_date
 from {{ source('erp', 'invoices') }}

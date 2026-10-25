@@ -1,8 +1,8 @@
 select
     order_id,
-    pos              as position,
-    sku              as produkt_id,
-    qty              as menge,
-    unit_price       as einzelpreis_netto,
-    discount         as rabatt_netto
+    pos              as line_no,
+    sku              as product_id,
+    qty              as quantity,
+    unit_price       as unit_price_net,
+    discount         as discount_net
 from {{ source('shop', 'order_items') }}

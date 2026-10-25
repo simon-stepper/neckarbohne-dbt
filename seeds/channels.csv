@@ -1,0 +1,5 @@
+channel_key,channel,description
+1,web,Einzelbestellungen im Onlineshop
+2,subscription,monatliche Abo-Lieferungen über den Shop
+3,cafe,Verkäufe an der Kasse im eigenen Café
+4,b2b,Rechnungen an Cafés und Gastronomie

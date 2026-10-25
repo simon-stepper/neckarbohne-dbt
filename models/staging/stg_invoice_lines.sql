@@ -1,8 +1,8 @@
 select
-    invoice_id      as rechnung_id,
-    line_no         as position,
-    sku             as produkt_id,
-    qty             as menge,
-    unit_price_net  as einzelpreis_netto,
-    discount_net    as rabatt_netto
+    invoice_id,
+    line_no,
+    sku             as product_id,
+    qty             as quantity,
+    unit_price_net,
+    discount_net
 from {{ source('erp', 'invoice_lines') }}

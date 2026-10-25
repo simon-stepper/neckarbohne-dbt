@@ -52,9 +52,9 @@ sources:
       - name: cards
         description: ausgegebene Kassenkarten, E-Mail freiwillig
 
-  - name: abo
+  - name: billing
     description: Abo- und Zahlungsanbieter mit eigenen Kunden-IDs
-    schema: abo
+    schema: billing
     tables:
       - name: customers
         description: Abo-Kunden (cus_…). E-Mail in anderer Schreibweise als im Shop.

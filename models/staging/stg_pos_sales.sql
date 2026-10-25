@@ -1,19 +1,19 @@
 -- Café-Kasse: deutsches Datumsformat, Lokalzeit ohne Zone, keine Positionsnummer.
-with quelle as (
+with source as (
     select
         *,
-        strptime(ts, '%d.%m.%Y %H:%M') as verkauft_um_lokal
+        strptime(ts, '%d.%m.%Y %H:%M') as sold_at_local
     from {{ source('pos', 'sales') }}
 )
 select
-    bon_id,
-    row_number() over (partition by bon_id order by sku, qty)  as position,
-    verkauft_um_lokal,
-    timezone('Europe/Berlin', verkauft_um_lokal)                as verkauft_um,
-    verkauft_um_lokal::date                                    as verkaufsdatum_lokal,
-    sku                                                        as produkt_id,
-    qty                                                        as menge,
-    amount_gross                                               as betrag_brutto_inkl_mwst,
-    nullif(upper(trim(card_id)), '')                           as karten_id,
-    register                                                   as kasse
-from quelle
+    receipt_id,
+    row_number() over (partition by receipt_id order by sku, qty)  as line_no,
+    sold_at_local,
+    timezone('Europe/Berlin', sold_at_local)                   as sold_at,
+    sold_at_local::date                                        as sale_date_local,
+    sku                                                        as product_id,
+    qty                                                        as quantity,
+    amount_gross                                               as amount_gross_incl_vat,
+    nullif(upper(trim(card_id)), '')                           as card_id,
+    register
+from source

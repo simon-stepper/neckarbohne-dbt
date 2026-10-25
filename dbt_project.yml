@@ -11,8 +11,8 @@ macro-paths: ["macros"]
 clean-targets: ["target", "dbt_packages", "logs"]
 
 vars:
-  datum_von: "2025-01-01"   # Bereich der Datumsdimension
-  datum_bis: "2027-12-31"
+  date_from: "2025-01-01"   # Bereich der Datumsdimension
+  date_to: "2027-12-31"
 
 models:
   neckarbohne:

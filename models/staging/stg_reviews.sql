@@ -1,7 +1,7 @@
 select
-    review_id        as bewertung_id,
-    sku              as produkt_id,
-    stars            as sterne,
+    review_id,
+    sku              as product_id,
+    stars,
     text,
-    created_at::timestamptz as erstellt_um
+    created_at::timestamptz as created_at
 from {{ source('shop', 'reviews') }}

@@ -6,18 +6,11 @@ Neckarbohne ist eine fiktive Kaffeerösterei in Stuttgart: Webshop, Kaffee-Abos,
 
 ## Setup
 
-### Projekt holen
+Ihr braucht Python 3.10 oder neuer (getestet mit 3.13 und 3.14) und Git. Die DuckDB-CLI ist optional (`duckdb -ui`).
 
-Eine der drei Varianten, der Inhalt ist identisch:
-
-- **Fork** (empfohlen, wenn ihr einen GitHub-Account habt): oben rechts **Fork**, dann euren Fork klonen. So könnt ihr eure Lösung pushen und Codespaces nutzen.
-- **Klonen:** `git clone https://github.com/simon-stepper/neckarbohne-dbt.git`
-- **Ohne Git:** ZIP aus Moodle oder hier über **Code → Download ZIP**.
-
-### Lokal (Python 3.10–3.13)
+### Lokal (Python 3.10 bis 3.14)
 
 ```bash
-cd neckarbohne-dbt
 python -m venv .venv
 source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -47,7 +40,7 @@ DuckDB erlaubt nur einen Schreiber: Die UI schließen, bevor ihr `dbt build` ode
 |---|---|---|
 | `shop` | Onlineshop (Webshop und Abo-Lieferungen) | customers, products, orders, order_items, refunds, reviews |
 | `pos` | Kasse im Café | sales, cards |
-| `abo` | Abo- und Zahlungsanbieter | customers, subscriptions, subscription_events |
+| `billing` | Abo- und Zahlungsanbieter | customers, subscriptions, subscription_events |
 | `erp` | Buchhaltung, B2B-Kunden | debitors, invoices, invoice_lines |
 
 Die Quellen haben Eigenheiten, die ihr aus der Vorlesung kennt: Statuscodes statt Namen, Bruttobeträge inkl. MwSt., Text-Zeitstempel, ein doppelter Ladelauf, drei verschiedene IDs für dieselbe Person. Die Beschreibungen stehen in `models/staging/_sources.yml`.
@@ -59,40 +52,54 @@ models/
   staging/        Silver · 1:1 pro Quelle: umbenennen, Typen, Dubletten        ✔ fertig
   intermediate/   Silver · zusammenführen
     int_order_lines.sql        alle Verkaufspositionen aus Shop, Kasse, ERP     ✔ fertig
-    int_kunden_vereint.sql     ein Kunde, bis zu vier IDs                       ✎ teilweise
-    int_kunden_schluessel.sql  Quell-ID → kunde_id                              ✔ fertig
+    int_customers_unified.sql  ein Kunde, bis zu vier IDs                       ✎ teilweise
+    int_customer_keys.sql      Quell-ID → customer_id                           ✔ fertig
   marts/          Gold · das Star Schema
-    dim_datum, dim_produkt, dim_kanal                                           ✔ fertig
-    dim_kunde.sql                                                               ✎ eure Aufgabe
+    dim_date, dim_product, dim_channel                                          ✔ fertig
+    dim_customer.sql                                                            ✎ eure Aufgabe
     fct_order_lines.sql                                                         ✎ eure Aufgabe
 snapshots/        customers_snapshot: SCD 2 für Shop-Kunden                     ✔ fertig
 analyses/         die Fragen der Geschäftsführung                               ✎ eure Aufgabe
 ```
 
+## Namen im Modell
+
+Tabellen und Spalten sind englisch, die Beschreibungen deutsch. Die wichtigsten Begriffe:
+
+| Spalte | heißt in der Vorlesung |
+|---|---|
+| `gross_revenue` | Umsatz brutto: Menge × Preis netto, vor Rabatt und Retoure (ohne MwSt.) |
+| `discount_amount`, `refund_amount` | Rabatt, Retoure (netto) |
+| `cost_amount` | Einstandskosten |
+| Nettoumsatz | `gross_revenue - discount_amount - refund_amount` |
+| `channel` | Kanal: `web`, `subscription` (Abo), `cafe`, `b2b` |
+| `coffee_type` | Sorte: Espresso, Filter, Decaf, Cold Brew |
+| `customer_key` = -1 | Unknown Member: Laufkundschaft im Café |
+
 ## Aufgaben
 
 ### Basis
 
-1. `int_kunden_vereint`: Kassenkarten und Abo-Kunden ohne Shop-Konto ergänzen. Was ist eigentlich ein „Kunde“?
-2. `dim_kunde`: Surrogate Key vergeben.
-3. `fct_order_lines`: `kanal_key` und `kunde_key` ergänzen. Grain: eine Zeile pro Position.
+1. `int_customers_unified`: Kassenkarten und Abo-Kunden ohne Shop-Konto ergänzen. Was ist eigentlich ein „Kunde“?
+2. `dim_customer`: Surrogate Key vergeben.
+3. `fct_order_lines`: `channel_key` und `customer_key` ergänzen. Grain: eine Zeile pro Position.
 4. `dbt build`, bis die Tests grün sind. Rote Tests am Anfang sind Absicht.
 5. Fragen der GF in `analyses/` beantworten: Umsatz nach Kanal, Marge pro Sorte.
 
 ### Fortgeschritten
 
-6. Unknown-Member: Café-Verkäufe ohne Kassenkarte bekommen `kunde_key = -1`. Danach die beiden Tests mit `severity: warn` auf Fehler stellen.
+6. Unknown-Member: Café-Verkäufe ohne Kassenkarte bekommen `customer_key = -1`. Danach die beiden Tests mit `severity: warn` auf Fehler stellen.
 7. SCD 2 sichtbar machen:
    ```bash
    dbt snapshot                            # erster Stand
-   python generate_data.py --kundenupdate  # nächste Lieferung: 45 Umzüge, 15 neue E-Mails
+   python generate_data.py --customer-update  # nächste Lieferung: 45 Umzüge, 15 neue E-Mails
    dbt snapshot                            # zweiter Stand
    ```
-   Dann `dim_kunde` aus `customers_snapshot` mit `valid_from` / `valid_to` bauen und in `fct_order_lines` die Version joinen, die am Bestelltag galt.
+   Dann `dim_customer` aus `customers_snapshot` mit `valid_from` / `valid_to` bauen und in `fct_order_lines` die Version joinen, die am Bestelltag galt.
 
 ### Bonus
 
-8. `fct_abo_monat` mit MRR: eine Zeile pro Abo und Monat, Status am Monatsende.
+8. `fct_subscription_month` mit MRR: eine Zeile pro Abo und Monat, Status am Monatsende.
 9. GF: Abo-Kündigungen pro Monat. Pausierte Abos zählen nicht.
 10. Warum ist MRR semi-additiv? Zeigt es mit einer Query.
 
@@ -101,13 +108,13 @@ analyses/         die Fragen der Geschäftsführung                             
 | Befehl | Was er tut |
 |---|---|
 | `dbt build` | Seeds, Snapshots, Modelle und Tests in der richtigen Reihenfolge |
-| `dbt build --select dim_kunde+` | ein Modell und alles, was davon abhängt |
+| `dbt build --select dim_customer+` | ein Modell und alles, was davon abhängt |
 | `dbt show --select fct_order_lines` | die ersten Zeilen eines Modells |
-| `dbt compile --select gf_umsatz_nach_kanal` | Analyse kompilieren, SQL steht dann in `target/compiled/` |
+| `dbt compile --select revenue_by_channel` | Analyse kompilieren, SQL steht dann in `target/compiled/` |
 | `dbt docs generate && dbt docs serve` | Doku und Lineage-Graph im Browser |
 
 ## Wenn etwas nicht geht
 
 - **`Could not set lock on file`**: Die DuckDB-UI oder ein anderes Programm hat die Datei offen. Schließen und neu starten.
-- **`Binder Error: … not found`**: Spaltenname prüfen; Staging benennt fast alles auf Deutsch um (`stg_orders.bestelldatum_lokal`, nicht `created_at`).
+- **`Binder Error: … not found`**: Spaltenname prüfen; Staging benennt einiges um (`stg_orders.order_date_local` und `ordered_at`, nicht `created_at`). Tabellen und Spalten sind englisch, die Beschreibungen in den YAML-Dateien deutsch.
 - **Firmenlaptop ohne Python**: Codespaces nutzen (siehe oben).

@@ -1,63 +1,63 @@
 -- Alle Verkaufspositionen aus drei Systemen in einer Form: eine Zeile pro Position.
--- Beträge netto ohne MwSt.: umsatz_brutto = Menge × Preis vor Rabatt und Retoure.
-with produkte as (
+-- Beträge netto ohne MwSt.: gross_revenue = Menge × Preis vor Rabatt und Retoure.
+with products as (
     select * from {{ ref('stg_products') }}
 ),
 
 shop as (
     select
         cast(o.order_id as varchar)                as order_id,
-        i.position,
-        o.bestelldatum_lokal,
-        o.kanal,
-        'shop'                                     as kunde_quelle,
-        o.customer_id                              as kunde_quelle_id,
-        i.produkt_id,
-        i.menge,
-        i.menge * i.einzelpreis_netto              as umsatz_brutto,
-        i.rabatt_netto                             as rabatt_betrag,
-        coalesce(r.erstattung_netto, 0)            as retoure_betrag
+        i.line_no,
+        o.order_date_local,
+        o.channel,                                 -- web | subscription
+        'shop'                                     as customer_source,
+        o.customer_id                              as customer_source_id,
+        i.product_id,
+        i.quantity,
+        i.quantity * i.unit_price_net              as gross_revenue,
+        i.discount_net                             as discount_amount,
+        coalesce(r.refund_net, 0)                  as refund_amount
     from {{ ref('stg_orders') }} o
     join {{ ref('stg_order_items') }} i using (order_id)
-    left join {{ ref('stg_refunds') }} r on r.order_id = i.order_id and r.position = i.position
-    where o.status <> 'storniert'
+    left join {{ ref('stg_refunds') }} r on r.order_id = i.order_id and r.line_no = i.line_no
+    where o.status <> 'canceled'
 ),
 
 cafe as (
     select
-        s.bon_id                                   as order_id,
-        s.position,
-        s.verkaufsdatum_lokal                      as bestelldatum_lokal,
-        'Café'                                     as kanal,
-        'kasse'                                    as kunde_quelle,
-        s.karten_id                                as kunde_quelle_id,
-        s.produkt_id,
-        s.menge,
-        round(s.betrag_brutto_inkl_mwst / (1 + p.mwst_satz), 2) as umsatz_brutto,
-        0                                          as rabatt_betrag,
-        0                                          as retoure_betrag
+        s.receipt_id                               as order_id,
+        s.line_no,
+        s.sale_date_local                          as order_date_local,
+        'cafe'                                     as channel,
+        'pos'                                      as customer_source,
+        s.card_id                                  as customer_source_id,
+        s.product_id,
+        s.quantity,
+        round(s.amount_gross_incl_vat / (1 + p.vat_rate), 2) as gross_revenue,
+        0                                          as discount_amount,
+        0                                          as refund_amount
     from {{ ref('stg_pos_sales') }} s
-    join produkte p using (produkt_id)
+    join products p using (product_id)
 ),
 
 b2b as (
     select
-        l.rechnung_id                              as order_id,
-        l.position,
-        r.rechnungsdatum                           as bestelldatum_lokal,
-        'B2B'                                      as kanal,
-        'erp'                                      as kunde_quelle,
-        r.debitor_id                               as kunde_quelle_id,
-        l.produkt_id,
-        l.menge,
-        l.menge * l.einzelpreis_netto              as umsatz_brutto,
-        l.rabatt_netto                             as rabatt_betrag,
-        0                                          as retoure_betrag
+        l.invoice_id                               as order_id,
+        l.line_no,
+        i.invoice_date                             as order_date_local,
+        'b2b'                                      as channel,
+        'erp'                                      as customer_source,
+        i.debitor_id                               as customer_source_id,
+        l.product_id,
+        l.quantity,
+        l.quantity * l.unit_price_net              as gross_revenue,
+        l.discount_net                             as discount_amount,
+        0                                          as refund_amount
     from {{ ref('stg_invoice_lines') }} l
-    join {{ ref('stg_invoices') }} r using (rechnung_id)
+    join {{ ref('stg_invoices') }} i using (invoice_id)
 ),
 
-alle as (
+all_lines as (
     select * from shop
     union all
     select * from cafe
@@ -66,19 +66,19 @@ alle as (
 )
 
 select
-    a.order_id || '-' || a.position                                as order_line_id,
+    a.order_id || '-' || a.line_no                                 as order_line_id,
     a.order_id,
-    a.position,
-    a.bestelldatum_lokal,
-    a.kanal,
-    a.kunde_quelle,
-    a.kunde_quelle_id,
-    a.produkt_id,
-    a.menge,
+    a.line_no,
+    a.order_date_local,
+    a.channel,
+    a.customer_source,
+    a.customer_source_id,
+    a.product_id,
+    a.quantity,
     -- Geld immer als DECIMAL: Gleitkommazahlen hinterlassen Reste wie 89084.76000000033
-    cast(a.umsatz_brutto as decimal(12, 2))                        as umsatz_brutto,
-    cast(a.rabatt_betrag as decimal(12, 2))                        as rabatt_betrag,
-    cast(a.retoure_betrag as decimal(12, 2))                       as retoure_betrag,
-    cast(a.menge * p.einstandspreis as decimal(12, 2))             as einstandskosten
-from alle a
-join produkte p using (produkt_id)
+    cast(a.gross_revenue as decimal(12, 2))                        as gross_revenue,
+    cast(a.discount_amount as decimal(12, 2))                      as discount_amount,
+    cast(a.refund_amount as decimal(12, 2))                        as refund_amount,
+    cast(a.quantity * p.unit_cost as decimal(12, 2))               as cost_amount
+from all_lines a
+join products p using (product_id)

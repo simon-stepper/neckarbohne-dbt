@@ -3,8 +3,8 @@ select
     customer_id,
     lower(trim(email))                       as email,
     first_name || ' ' || last_name           as name,
-    city                                     as stadt,
-    zip                                      as plz,
-    created_at::timestamptz                  as erstellt_um,
-    updated_at::timestamptz                  as aktualisiert_um
+    city,
+    zip,
+    created_at::timestamptz                  as created_at,
+    updated_at::timestamptz                  as updated_at
 from {{ source('shop', 'customers') }}

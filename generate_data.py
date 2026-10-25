@@ -3,12 +3,12 @@
 Neckarbohne GmbH – synthetische Quelldaten für das dbt-Lab (Tag 2) und die Labs an Tag 3 und 4.
 
 Spielt die Rolle des Ingestion-Tools (EL): schreibt die Rohdaten der vier Quellsysteme als CSV
-nach data/ und lädt sie unverändert in die Schemas shop, pos, abo und erp von neckarbohne.duckdb.
+nach data/ und lädt sie unverändert in die Schemas shop, pos, billing und erp von neckarbohne.duckdb.
 Das ist der Bronze-Layer. Alles Weitere macht dbt.
 
     python generate_data.py                      # Datenstand bis 2026-10-25 (Tag 2)
-    python generate_data.py --bis 2026-11-29     # späterer Datenstand (Tag 4)
-    python generate_data.py --kundenupdate       # nächste Lieferung shop.customers (Stand 2026-10-26):
+    python generate_data.py --until 2026-11-29   # späterer Datenstand (Tag 4)
+    python generate_data.py --customer-update    # nächste Lieferung shop.customers (Stand 2026-10-26):
                                                  # 45 Umzüge, 15 neue E-Mail-Adressen – für den Snapshot
 
 Die Daten sind deterministisch (Seed 2026): Gleicher Stichtag, gleiche Zahlen – auf jedem Laptop.
@@ -20,7 +20,7 @@ Eigenheiten, die absichtlich drin sind (Staging-Arbeit!):
     Dubletten aus einem wiederholten Ladelauf (Bestellungen vom 2026-10-10 und 2026-10-11)
   - pos.sales: deutsches Datumsformat, Lokalzeit ohne Zone, Bruttobeträge, keine Positionsnummer,
     Kassenkarten-IDs mal klein, mal mit Leerzeichen
-  - abo.*: eigene Kunden-IDs (cus_…), E-Mails in anderer Schreibweise, Kündigungsdatum als TT.MM.JJJJ
+  - billing.*: Abo- und Zahlungsanbieter mit eigenen Kunden-IDs (cus_…), E-Mails in anderer Schreibweise, Kündigungsdatum als TT.MM.JJJJ
   - erp.*: B2B-Kunden als Debitoren mit eigenen IDs
 """
 import argparse
@@ -63,15 +63,15 @@ def iso_utc(ts: dt.datetime) -> str:
 
 # ---------------------------------------------------------------- Stammdaten
 PRODUCTS = [  # sku, title, sort, category, roast, list_price_net, unit_cost, vat_rate
-    ("P-01", "Neckar Espresso 500 g", "Espresso", "Bohnen", "dunkel", "16.90", "7.10", "0.07"),
-    ("P-02", "Neckar Espresso 1 kg", "Espresso", "Bohnen", "dunkel", "29.90", "13.20", "0.07"),
-    ("P-03", "Filterkaffee Hausmischung 500 g", "Filter", "Bohnen", "hell", "12.90", "5.30", "0.07"),
-    ("P-04", "Filter Äthiopien 500 g", "Filter", "Bohnen", "hell", "15.90", "7.80", "0.07"),
-    ("P-05", "Entkoffeiniert 500 g", "Entkoffeiniert", "Bohnen", "mittel", "14.50", "6.90", "0.07"),
-    ("P-06", "Cold Brew Flasche 0,33 l", "Cold Brew", "Getränk", "mittel", "3.90", "1.10", "0.19"),
-    ("P-07", "Cappuccino (Café)", "Espresso", "Getränk", "dunkel", "3.60", "0.90", "0.19"),
-    ("P-08", "Filterkaffee (Café)", "Filter", "Getränk", "hell", "2.80", "0.50", "0.19"),
-    ("P-09", "Espresso (Café)", "Espresso", "Getränk", "dunkel", "2.40", "0.40", "0.19"),
+    ("P-01", "Neckar Espresso 500 g", "Espresso", "beans", "dark", "16.90", "7.10", "0.07"),
+    ("P-02", "Neckar Espresso 1 kg", "Espresso", "beans", "dark", "29.90", "13.20", "0.07"),
+    ("P-03", "Filterkaffee Hausmischung 500 g", "Filter", "beans", "light", "12.90", "5.30", "0.07"),
+    ("P-04", "Filter Äthiopien 500 g", "Filter", "beans", "light", "15.90", "7.80", "0.07"),
+    ("P-05", "Entkoffeiniert 500 g", "Decaf", "beans", "medium", "14.50", "6.90", "0.07"),
+    ("P-06", "Cold Brew Flasche 0,33 l", "Cold Brew", "drink", "medium", "3.90", "1.10", "0.19"),
+    ("P-07", "Cappuccino (Café)", "Espresso", "drink", "dark", "3.60", "0.90", "0.19"),
+    ("P-08", "Filterkaffee (Café)", "Filter", "drink", "light", "2.80", "0.50", "0.19"),
+    ("P-09", "Espresso (Café)", "Espresso", "drink", "dark", "2.40", "0.40", "0.19"),
 ]
 PROD = {p[0]: p for p in PRODUCTS}
 PLANS = {  # plan, sku, monatlicher Preis netto
@@ -324,11 +324,11 @@ TABLES = {
     "shop.order_items": "order_id BIGINT, pos INTEGER, sku VARCHAR, qty INTEGER, unit_price DECIMAL(10,2), discount DECIMAL(10,2)",
     "shop.refunds": "refund_id BIGINT, order_id BIGINT, pos INTEGER, amount DECIMAL(10,2), refunded_at VARCHAR",
     "shop.reviews": "review_id BIGINT, sku VARCHAR, stars INTEGER, text VARCHAR, created_at VARCHAR",
-    "pos.sales": "bon_id VARCHAR, ts VARCHAR, sku VARCHAR, qty INTEGER, amount_gross DECIMAL(10,2), card_id VARCHAR, register VARCHAR",
+    "pos.sales": "receipt_id VARCHAR, ts VARCHAR, sku VARCHAR, qty INTEGER, amount_gross DECIMAL(10,2), card_id VARCHAR, register VARCHAR",
     "pos.cards": "card_id VARCHAR, email VARCHAR, issued_on DATE",
-    "abo.customers": "cus_id VARCHAR, email VARCHAR, name VARCHAR",
-    "abo.subscriptions": "sub_id VARCHAR, cus_id VARCHAR, plan VARCHAR, price_monthly DECIMAL(10,2), status VARCHAR, started_on DATE, canceled_at VARCHAR, paused_at VARCHAR",
-    "abo.subscription_events": "event_id BIGINT, sub_id VARCHAR, type VARCHAR, occurred_at TIMESTAMPTZ",
+    "billing.customers": "cus_id VARCHAR, email VARCHAR, name VARCHAR",
+    "billing.subscriptions": "sub_id VARCHAR, cus_id VARCHAR, plan VARCHAR, price_monthly DECIMAL(10,2), status VARCHAR, started_on DATE, canceled_at VARCHAR, paused_at VARCHAR",
+    "billing.subscription_events": "event_id BIGINT, sub_id VARCHAR, type VARCHAR, occurred_at TIMESTAMPTZ",
     "erp.debitors": "debitor_id VARCHAR, company VARCHAR, city VARCHAR, payment_terms_days INTEGER",
     "erp.invoices": "invoice_id VARCHAR, debitor_id VARCHAR, invoice_date DATE, due_date DATE, paid_date DATE",
     "erp.invoice_lines": "invoice_id VARCHAR, line_no INTEGER, sku VARCHAR, qty INTEGER, unit_price_net DECIMAL(10,2), discount_net DECIMAL(10,2)",
@@ -367,16 +367,16 @@ def rows_for(data, cutoff: dt.date):
     out["pos.cards"] = [(c["card_id"], c["email"], c["issued"]) for c in data["cards"] if c["issued"] <= cutoff]
     subs = [s for s in data["subs"] if s["start"] <= cutoff]
     cus_keep = {s["cus_id"] for s in subs}
-    out["abo.customers"] = [(a["cus_id"], a["email"], a["name"]) for a in data["abo_customers"] if a["cus_id"] in cus_keep]
+    out["billing.customers"] = [(a["cus_id"], a["email"], a["name"]) for a in data["abo_customers"] if a["cus_id"] in cus_keep]
     srows = []
     for s in subs:
         st, last_pause, canceled = subs_state(s, cutoff)
         srows.append((s["sub_id"], s["cus_id"], s["plan"], s["price"], st, s["start"],
                       canceled.strftime("%d.%m.%Y") if canceled else None,
                       last_pause.strftime("%d.%m.%Y") if last_pause else None))
-    out["abo.subscriptions"] = srows
+    out["billing.subscriptions"] = srows
     evs = sorted((e for e in data["events"] if e[2].date() <= cutoff), key=lambda e: e[2])
-    out["abo.subscription_events"] = [(n, e[0], e[1], iso_utc(e[2])) for n, e in enumerate(evs, start=1)]
+    out["billing.subscription_events"] = [(n, e[0], e[1], iso_utc(e[2])) for n, e in enumerate(evs, start=1)]
     out["erp.debitors"] = [(d["debitor_id"], d["company"], d["city"], d["terms"]) for d in data["debitors"]]
     inv_keep = {i["invoice_id"] for i in data["invoices"] if i["date"] <= cutoff}
     out["erp.invoices"] = [(i["invoice_id"], i["debitor_id"], i["date"], i["due"],
@@ -388,19 +388,19 @@ def rows_for(data, cutoff: dt.date):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--bis", default="2026-10-25", help="Stichtag der Daten (YYYY-MM-DD), höchstens 2026-11-29")
-    ap.add_argument("--kundenupdate", action="store_true", help="nur shop.customers neu laden, Stand 2026-10-26 (Umzüge)")
+    ap.add_argument("--until", "--bis", dest="until", default="2026-10-25", help="Stichtag der Daten (YYYY-MM-DD), höchstens 2026-11-29")
+    ap.add_argument("--customer-update", "--kundenupdate", dest="customer_update", action="store_true", help="nur shop.customers neu laden, Stand 2026-10-26 (Umzüge)")
     ap.add_argument("--db", default=str(HERE / "neckarbohne.duckdb"))
     ap.add_argument("--csv", default=str(HERE / "data"), help="Ordner für die CSV-Dateien")
     args = ap.parse_args()
-    cutoff = dt.date.fromisoformat(args.bis)
+    cutoff = dt.date.fromisoformat(args.until)
     assert START < cutoff <= HORIZON, f"Stichtag muss zwischen {START} und {HORIZON} liegen"
 
     data = build(random.Random(SEED))
-    if args.kundenupdate or cutoff >= UPDATE_DAY:
+    if args.customer_update or cutoff >= UPDATE_DAY:
         apply_customer_update(data["customers"])
     tables = rows_for(data, cutoff)
-    if args.kundenupdate:  # nur die neue Lieferung der Kundentabelle, Stand 2026-10-26
+    if args.customer_update:  # nur die neue Lieferung der Kundentabelle, Stand 2026-10-26
         tables = {"shop.customers": rows_for(data, max(cutoff, UPDATE_DAY))["shop.customers"]}
 
     csv_dir = Path(args.csv)
@@ -422,7 +422,7 @@ def main():
                                                nullstr='', quote='"', escape='"')""")
         print(f"{name:26s} {len(rows):>7,d} Zeilen")
     con.close()
-    print(f"Stichtag {cutoff} · geladen nach {args.db}" + (" · Kundenupdate" if args.kundenupdate else ""))
+    print(f"Stichtag {cutoff} · geladen nach {args.db}" + (" · Kundenupdate" if args.customer_update else ""))
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 select
-    refund_id        as erstattung_id,
+    refund_id,
     order_id,
-    pos              as position,
-    amount           as erstattung_netto,
-    refunded_at::timestamptz as erstattet_um
+    pos              as line_no,
+    amount           as refund_net,
+    refunded_at::timestamptz as refunded_at
 from {{ source('shop', 'refunds') }}
