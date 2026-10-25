@@ -1,5 +1,5 @@
 -- Alle Verkaufspositionen aus drei Systemen in einer Form: eine Zeile pro Position.
--- Beträge netto ohne MwSt.: gross_revenue = Menge × Preis vor Rabatt und Retoure.
+-- Beträge netto ohne MwSt.: revenue = Menge × Preis vor Rabatt und Retoure.
 with products as (
     select * from {{ ref('stg_products') }}
 ),
@@ -76,7 +76,7 @@ select
     a.product_id,
     a.quantity,
     -- Geld immer als DECIMAL: Gleitkommazahlen hinterlassen Reste wie 89084.76000000033
-    cast(a.gross_revenue as decimal(12, 2))                        as gross_revenue,
+    cast(a.gross_revenue as decimal(12, 2))                        as revenue,  -- kürzer, wie im Dashboard
     cast(a.discount_amount as decimal(12, 2))                      as discount_amount,
     cast(a.refund_amount as decimal(12, 2))                        as refund_amount,
     cast(a.quantity * p.unit_cost as decimal(12, 2))               as cost_amount
