@@ -1,0 +1,18 @@
+[project]
+name = "neckarbohne-dbt"
+version = "0.1.0"
+description = "Neckarbohne GmbH: dbt + DuckDB Lab für die Vorlesung Data Warehouse 2026 (DHBW)"
+readme = "README.md"
+requires-python = ">=3.10,<3.15"
+dependencies = [
+    "dbt-core==1.12.6",
+    "dbt-duckdb==1.11.0",
+    "duckdb==1.5.6",
+    # Tag 3 (Iceberg-Lab) und Tag 4 (Lab-Referenzwerte)
+    "pyiceberg[pyarrow,pandas,sql-sqlite]==0.12.0",
+    "pyyaml",
+]
+
+[tool.uv]
+# Kein Python-Paket, nur ein Projekt mit Abhängigkeiten
+package = false
