@@ -1,6 +1,6 @@
 {
   "name": "Neckarbohne · dbt + DuckDB",
-  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "image": "mcr.microsoft.com/devcontainers/python:3.14",
   "postCreateCommand": "pip install -r requirements.txt && curl -fsSL https://install.duckdb.org | sh && python generate_data.py",
   "remoteEnv": { "PATH": "${containerEnv:PATH}:/home/vscode/.duckdb/cli/latest" },
   "customizations": {

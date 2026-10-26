@@ -6,11 +6,11 @@ Neckarbohne ist eine fiktive Kaffeerösterei in Stuttgart: Webshop, Kaffee-Abos,
 
 ## Setup
 
-Ihr braucht Git und entweder [uv](https://docs.astral.sh/uv/) oder Python 3.10 bis 3.14 (getestet mit 3.13 und 3.14). Die DuckDB-CLI ist optional (`duckdb -ui`).
+Ihr braucht Git und entweder [uv](https://docs.astral.sh/uv/) oder Python 3.14 (3.10 bis 3.13 gehen auch). Die DuckDB-CLI ist optional (`duckdb -ui`).
 
 ### Lokal mit uv (empfohlen)
 
-[uv](https://docs.astral.sh/uv/) installiert bei Bedarf auch das passende Python (3.13, siehe `.python-version`).
+[uv](https://docs.astral.sh/uv/) installiert bei Bedarf auch das passende Python (3.14, siehe `.python-version`).
 
 ```bash
 uv sync                              # .venv anlegen, Pakete aus uv.lock installieren
@@ -21,7 +21,7 @@ uv run dbt build                     # alles bauen und testen
 
 Wer nicht jedes Mal `uv run` tippen will: `source .venv/bin/activate` (Windows: `.venv\Scripts\activate`), danach direkt `dbt build`.
 
-### Lokal mit pip (Python 3.10 bis 3.14)
+### Lokal mit pip (Python 3.14, ältere ab 3.10 gehen auch)
 
 ```bash
 python -m venv .venv
